@@ -16,6 +16,7 @@
 
 use std::collections::HashMap;
 
+use chrono::offset::LocalResult;
 use chrono::{Datelike, Days, Duration, Local, NaiveDate, Utc};
 use iced_aw::date_picker::Date;
 
@@ -204,9 +205,16 @@ impl FurReport {
     }
 
     pub fn update_tasks_in_range(&mut self) {
+        let start_time = self.start_of_day_rfc3339(self.date_range_start);
+        let end_exclusive_date = self
+            .date_range_end
+            .checked_add_days(Days::new(1))
+            .unwrap_or(self.date_range_end);
+        let end_time = self.start_of_day_rfc3339(end_exclusive_date);
+
         match db_retrieve_tasks_by_date_range(
-            self.date_range_start.to_string(),
-            self.date_range_end.to_string(),
+            start_time,
+            end_time,
         ) {
             Ok(s) => self.tasks_in_range = s,
             Err(e) => {
@@ -217,6 +225,17 @@ impl FurReport {
 
         self.populate_task_property_values();
         self.update_charts();
+    }
+
+    fn start_of_day_rfc3339(&self, date: NaiveDate) -> String {
+        let naive_datetime = date
+            .and_hms_opt(0, 0, 0)
+            .expect("Invalid start of day time");
+        match Local.from_local_datetime(&naive_datetime) {
+            LocalResult::Single(date_time) => date_time.to_rfc3339(),
+            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
+            LocalResult::None => Local.from_utc_datetime(&naive_datetime).to_rfc3339(),
+        }
     }
 
     fn update_charts(&mut self) {
