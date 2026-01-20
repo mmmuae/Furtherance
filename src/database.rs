@@ -451,7 +451,7 @@ pub fn db_retrieve_tasks_by_date_range(
 ) -> Result<Vec<FurTask>> {
     let conn = Connection::open(db_get_directory())?;
     let mut stmt = conn.prepare(
-        "SELECT * FROM tasks WHERE start_time BETWEEN ?1 AND ?2 AND is_deleted = 0 ORDER BY start_time ASC",
+        "SELECT * FROM tasks WHERE start_time >= ?1 AND start_time < ?2 AND is_deleted = 0 ORDER BY start_time ASC",
     )?;
     let mut rows = stmt.query(params![start_date, end_date])?;
 
